@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 560px;
+      padding: 32px;
+      height: fit-content;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 24px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .input-row input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid #dde1e7;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-row input[type="text"]:focus { border-color: #6366f1; }
+
+    .input-row button {
+      padding: 10px 18px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .input-row button:hover { background: #4f46e5; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .stats { font-size: 0.82rem; color: #8b8fa8; }
+
+    .group-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: #6366f1;
+      cursor: pointer;
+      user-select: none;
+      background: #eef2ff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+
+    .group-toggle:hover { background: #e0e7ff; }
+
+    /* ── task list ── */
+    #task-list { list-style: none; }
+
+    /* ── folder / group ── */
+    .folder {
+      margin-bottom: 8px;
+      border: 1.5px solid #e8eaf0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .folder-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #f7f8fc;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s;
+    }
+
+    .folder-header:hover { background: #eef0f8; }
+
+    .folder-arrow {
+      font-size: 0.7rem;
+      color: #6366f1;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .folder-arrow.open { transform: rotate(90deg); }
+
+    .folder-icon { font-size: 1rem; flex-shrink: 0; }
+
+    .folder-title {
+      flex: 1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .folder-date {
+      font-size: 0.75rem;
+      color: #8b8fa8;
+      font-weight: 400;
+    }
+
+    .folder-badge {
+      font-size: 0.72rem;
+      background: #e0e7ff;
+      color: #6366f1;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-weight: 600;
+    }
+
+    .folder-body {
+      padding: 0 14px;
+      overflow: hidden;
+      transition: max-height 0.25s ease, padding 0.25s ease;
+    }
+
+    .folder-body.collapsed {
+      max-height: 0 !important;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* ── task items ── */
+    li.task-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+
+    li.task-item:last-child { border-bottom: none; }
+
+    li.task-item input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #6366f1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .task-text {
+      flex: 1;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      word-break: break-word;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 4px;
+      transition: background 0.12s;
+    }
+
+    .task-text:hover { background: #f5f6fa; }
+    .task-text.done  { text-decoration: line-through; color: #b0b4c8; }
+
+    .edit-input {
+      flex: 1;
+      padding: 4px 8px;
+      border: 1.5px solid #6366f1;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      outline: none;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #c4c8d8;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn.edit:hover   { color: #6366f1; background: #eef2ff; }
+    .icon-btn.save:hover   { color: #22c55e; background: #f0fdf4; }
+    .icon-btn.cancel:hover { color: #f59e0b; background: #fffbeb; }
+    .icon-btn.del:hover    { color: #ef4444; background: #fef2f2; }
+
+    .empty {
+      text-align: center;
+      color: #b0b4c8;
+      font-size: 0.9rem;
+      padding: 32px 0;
+    }
+
+    /* flat list task items (not grouped) */
+    #task-list > li.task-item {
+      border-bottom: 1px solid #f0f2f5;
+    }
+    #task-list > li.task-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>My Tasks</h1>
+
+  <div class="input-row">
+    <input type="text" id="task-input" placeholder="Add a new task..." maxlength="200">
+    <button onclick="addTask()">Add</button>
+  </div>
+
+  <div class="toolbar">
+    <span class="stats" id="stats"></span>
+    <button class="group-toggle" id="group-btn" onclick="toggleGrouping()">
+      <span>▤</span> <span id="group-label"></span>
+    </button>
+  </div>
+
+  <ul id="task-list"></ul>
+</div>
+
+<script>
+  let tasks      = JSON.parse(localStorage.getItem('tasks')   || '[]');
+  let grouped    = localStorage.getItem('grouped') === 'true';
+  let collapsed  = JSON.parse(localStorage.getItem('collapsed') || '{}');
+  let editingIdx = null;
+
+  function save() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function formatDateLabel(dateStr) {
+    const str = (!dateStr || dateStr === '(no date)') ? todayStr() : dateStr;
+    const [y, m, dd] = str.split('-');
+    return { short: `${m}/${dd}/${y}`, full: '' };
+  }
+
+  function updateStats() {
+    const total = tasks.length;
+    const done  = tasks.filter(t => t.done).length;
+    document.getElementById('stats').textContent =
+      total === 0 ? '' : `${done} of ${total} completed`;
+  }
+
+  function currentDateDisplay() {
+    const d = new Date();
+    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+  }
+
+  function toggleGrouping() {
+    grouped = !grouped;
+    localStorage.setItem('grouped', grouped);
+    document.getElementById('group-label').textContent = grouped ? `Ungroup  ${currentDateDisplay()}` : currentDateDisplay();
+    render();
+  }
+
+  function toggleFolder(dateKey) {
+    collapsed[dateKey] = !collapsed[dateKey];
+    localStorage.setItem('collapsed', JSON.stringify(collapsed));
+    // toggle without full re-render for smoothness
+    const body  = document.querySelector(`.folder-body[data-date="${CSS.escape(dateKey)}"]`);
+    const arrow = document.querySelector(`.folder-arrow[data-date="${CSS.escape(dateKey)}"]`);
+    if (!body) return;
+    if (collapsed[dateKey]) {
+      body.classList.add('collapsed');
+      if (arrow) arrow.classList.remove('open');
+    } else {
+      body.classList.remove('collapsed');
+      if (arrow) arrow.classList.add('open');
+    }
+  }
+
+  // ── render ──────────────────────────────────────────────
+  function render() {
+    const list = document.getElementById('task-list');
+    list.innerHTML = '';
+
+    if (tasks.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'empty';
+      li.textContent = 'No tasks yet. Add one above!';
+      list.appendChild(li);
+      updateStats();
+      return;
+    }
+
+    if (grouped) {
+      const order  = [];
+      const byDate = {};
+      tasks.forEach((task, i) => {
+        const d = task.date || todayStr();
+        if (!byDate[d]) { byDate[d] = []; order.push(d); }
+        byDate[d].push(i);
+      });
+      order.sort((a, b) => b.localeCompare(a));
+
+      order.forEach(dateKey => {
+        const indices   = byDate[dateKey];
+        const doneCount = indices.filter(i => tasks[i].done).length;
+        const label     = formatDateLabel(dateKey);
+        const isOpen    = !collapsed[dateKey];
+
+        // folder wrapper
+        const folder = document.createElement('li');
+        folder.style.listStyle = 'none';
+
+        const folderDiv = document.createElement('div');
+        folderDiv.className = 'folder';
+
+        // header
+        const header = document.createElement('div');
+        header.className = 'folder-header';
+        header.addEventListener('click', () => toggleFolder(dateKey));
+
+        const arrow = document.createElement('span');
+        arrow.className = 'folder-arrow' + (isOpen ? ' open' : '');
+        arrow.dataset.date = dateKey;
+        arrow.textContent = '▶';
+
+        const icon = document.createElement('span');
+        icon.className = 'folder-icon';
+        icon.textContent = '📁';
+
+        const title = document.createElement('span');
+        title.className = 'folder-title';
+        title.textContent = label.short;
+
+        const badge = document.createElement('span');
+        badge.className = 'folder-badge';
+        badge.textContent = `${doneCount}/${indices.length}`;
+
+        header.append(arrow, icon, title, badge);
+
+        // body
+        const body = document.createElement('div');
+        body.className = 'folder-body' + (isOpen ? '' : ' collapsed');
+        body.dataset.date = dateKey;
+        // set max-height so CSS transition works
+        const itemHeight = 46; // approx px per task
+        body.style.maxHeight = isOpen ? `${indices.length * itemHeight + 16}px` : '0px';
+
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'none';
+        indices.forEach(i => ul.appendChild(buildTaskItem(tasks[i], i)));
+        body.appendChild(ul);
+
+        folderDiv.append(header, body);
+        folder.appendChild(folderDiv);
+        list.appendChild(folder);
+      });
+    } else {
+      tasks.forEach((task, i) => list.appendChild(buildTaskItem(task, i)));
+    }
+
+    updateStats();
+  }
+
+  // ── build a single task <li> ────────────────────────────
+  function buildTaskItem(task, i) {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type    = 'checkbox';
+    checkbox.checked = task.done;
+    checkbox.addEventListener('change', () => toggleTask(i));
+
+    if (editingIdx === i) {
+      const input = document.createElement('input');
+      input.type      = 'text';
+      input.className = 'edit-input';
+      input.value     = task.text;
+      input.maxLength = 200;
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  commitEdit(i, input.value);
+        if (e.key === 'Escape') cancelEdit();
+      });
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'icon-btn save';
+      saveBtn.title     = 'Save';
+      saveBtn.textContent = '✓';
+      saveBtn.addEventListener('click', () => commitEdit(i, input.value));
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className   = 'icon-btn cancel';
+      cancelBtn.title       = 'Cancel';
+      cancelBtn.textContent = '✕';
+      cancelBtn.addEventListener('click', cancelEdit);
+
+      li.append(checkbox, input, saveBtn, cancelBtn);
+      requestAnimationFrame(() => { input.focus(); input.select(); });
+    } else {
+      const span = document.createElement('span');
+      span.className   = 'task-text' + (task.done ? ' done' : '');
+      span.textContent = task.text;
+      span.title       = 'Click to edit';
+      span.addEventListener('click', () => startEdit(i));
+
+      const editBtn = document.createElement('button');
+      editBtn.className   = 'icon-btn edit';
+      editBtn.title       = 'Edit task';
+      editBtn.textContent = '✎';
+      editBtn.addEventListener('click', () => startEdit(i));
+
+      const delBtn = document.createElement('button');
+      delBtn.className   = 'icon-btn del';
+      delBtn.title       = 'Delete task';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', () => deleteTask(i));
+
+      li.append(checkbox, span, editBtn, delBtn);
+    }
+
+    return li;
+  }
+
+  // ── actions ─────────────────────────────────────────────
+  function addTask() {
+    const input = document.getElementById('task-input');
+    const text  = input.value.trim();
+    if (!text) return;
+    tasks.push({ text, done: false, date: todayStr() });
+    save();
+    render();
+    input.value = '';
+    input.focus();
+  }
+
+  function toggleTask(i) {
+    tasks[i].done = !tasks[i].done;
+    save();
+    render();
+  }
+
+  function deleteTask(i) {
+    tasks.splice(i, 1);
+    if (editingIdx === i) editingIdx = null;
+    save();
+    render();
+  }
+
+  function startEdit(i)  { editingIdx = i;    render(); }
+  function cancelEdit()  { editingIdx = null; render(); }
+
+  function commitEdit(i, value) {
+    const text = value.trim();
+    if (text) tasks[i].text = text;
+    editingIdx = null;
+    save();
+    render();
+  }
+
+  document.getElementById('task-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  document.getElementById('group-label').textContent = grouped ? `Ungroup  ${currentDateDisplay()}` : currentDateDisplay();
+  render();
+</script>
+</body>
+</html>
